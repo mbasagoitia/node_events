@@ -26,11 +26,18 @@ const server = http.createServer((req, res) => {
             })
         }
         else if (req.url == "/newsletter_signup" && req.method == "POST") {
-            let reqBody = Buffer.concat(chunks).toString();
-            NewsLetter.emit("signup", reqBody);
-            res.writeHead(200, { "content-type": "text/html" });
-            res.write("Successfully signed up!");
-            res.end();
+            try {
+                let reqBody = JSON.parse(Buffer.concat(chunks).toString());
+                NewsLetter.emit("signup", reqBody);
+                res.writeHead(200, { "content-type": "application/json" });
+                res.write(JSON.stringify({ msg: "Successfully signed up!" }));
+                res.end();
+            } catch (error) {
+                console.log("Cannot parse the response body to JSON.");
+                res.writeHead(400, { "content-type": "text/html" });
+                res.write("There was an error with your request.");
+                res.end();
+            }
         } else {
             res.writeHead(404, { "content-type": "text/html" });
             res.write("The page you are looking for cannot be found.");
@@ -43,7 +50,7 @@ const server = http.createServer((req, res) => {
 });
 
 NewsLetter.on("signup", (contact) => {
-    fs.appendFile("contact-info.csv", `\n${contact}`, (err) => {
+    fs.appendFile("contact-info.csv", `${contact.name}: ${contact.email}\n`, (err) => {
         if (err) {
             console.error(err);
         }
